@@ -28,6 +28,7 @@ start_gear = ''
 
 react_time_list = []
 
+
 # class for scrollable label
 class ScrollLabel(QScrollArea):
     # constructor
@@ -145,8 +146,7 @@ class Window(QWidget):
 
                 #playsound.playsound('./Ring.wav`')
                 winsound.PlaySound('./Ring.wav', winsound.SND_ASYNC)
-                self.label.setText(self.label.text() + "\n 테스트 입니다. 입력 키: " + event.name)
-
+                #self.label.setText(self.label.text() + "\n 기어 변경 완료.")
                 if event.name == self.key_p:
                     if disp_gear == 'P' and input_cnt == 0:
                         text = self.label.text()
@@ -441,14 +441,23 @@ class PicWindow(QWidget):
 
         self.setLayout(self.v_wrap)
 
+        self.table_widget = None
+
+        self.popupGearIndicator()
+
+        self.table_widget.hide()
+        # self.img_label.setPixmap(QPixmap("C:/Task/Change_D.jpg"))
+
+    # 기어 지시문 팝업
+    def popupGearIndicator(self):
         self.table_widget = QTableWidget(self)
 
         self.table_widget.setStyleSheet("QTableWidget"
-                                 "{"
-                                 "border : 2px solid black;"
-                                 "gridline-color: #000000;"
-                                 "background : white;"
-                                 "}")
+                                        "{"
+                                        "border : 2px solid black;"
+                                        "gridline-color: #000000;"
+                                        "background : white;"
+                                        "}")
 
         self.table_widget.setSelectionMode(QAbstractItemView.NoSelection)
         self.table_widget.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -462,18 +471,19 @@ class PicWindow(QWidget):
         self.table_widget.horizontalHeader().hide()
 
         self.table_widget.setColumnWidth(0, 0)
-        self.table_widget.setColumnWidth(1, int(self.table_widget.width()/2 - 2))
-        self.table_widget.setColumnWidth(2, int(self.table_widget.width()/2 - 2))
+        self.table_widget.setColumnWidth(1, int(self.table_widget.width() / 2 - 2))
+        self.table_widget.setColumnWidth(2, int(self.table_widget.width() / 2 - 2))
 
         self.table_widget.setRowHeight(0, int(self.table_widget.height() - 52))
         self.table_widget.setRowHeight(1, int(self.table_widget.height() - 32))
 
         arrow = QPixmap('./arrow.png')
+
         self.arrow_image = QLabel(self.table_widget)
         self.arrow_image.setPixmap(arrow)
         self.arrow_image.setFixedSize(arrow.size())
 
-        self.arrow_image.move(int(self.table_widget.width()/2 - 30), int(self.table_widget.height() - 50))
+        self.arrow_image.move(int(self.table_widget.width() / 2 - 30), int(self.table_widget.height() - 50))
 
         font = QFont('Arial', 14)
         font.setBold(True)
@@ -501,12 +511,16 @@ class PicWindow(QWidget):
         self.table_widget.setItem(1, 1, item3)
         self.table_widget.setItem(1, 2, item4)
 
-        self.table_widget.move(100, 100)
+        self.table_widget.move(int(self.width() / 2 - 150), int(self.height() / 2 - 40))
 
+    def showIndicator(self, parent, start_string, end_string):
+        self.table_widget.item(1, 1).setText(start_string)
+        self.table_widget.item(1, 2).setText(end_string)
+        self.table_widget.move(int(parent.width() / 2 - 150), int(parent.height() / 2 - 40))
+        self.table_widget.show()
 
-        # self.img_label.setPixmap(QPixmap("C:/Task/Change_D.jpg"))
-
-
+    def hideIndicator(self):
+        self.table_widget.hide()
 
     def start(self):
         self.multi.start()
@@ -531,6 +545,7 @@ class PicWindow(QWidget):
 
     def end(self):
         self.multi.end()
+        self.table_widget.hide()
         self.img_label.setText("Waiting for start...")
 
 
@@ -552,11 +567,22 @@ class MultiThread(QThread):
             ['R', 'D'], ['D', 'R']
         ]
 
+        gear_name_dic = {
+            'P': '주차',
+            'R': '후진',
+            'D': '주행',
+            'N': '중립'
+        }
+
+        inter_time_array = [7, 6, 5, 5, 6, 8, 5, 7, 8, 5, 8, 8, 7, 6, 5, 6, 7, 8, 6, 6, 6, 7, 6, 6]
+
         bin_array = []
 
         try_num = 24
 
         global start_gear
+
+        global disp_gear
 
         last_gear_picked = ''
 
@@ -571,7 +597,7 @@ class MultiThread(QThread):
 
             gear_picked = gear_array[rand_idx]
 
-            if gear_picked[0] == last_gear_picked:
+            if gear_picked[0] == last_gear_picked or gear_picked[0] == disp_gear:
                 continue
 
             bin_array.append(gear_picked)
@@ -581,18 +607,25 @@ class MultiThread(QThread):
             # else:
             #     last_gear_picked = gear_picked
 
-            global disp_gear
+            self.parent.img_label.setPixmap(QPixmap("./Task/init.PNG"))
 
             for j in gear_picked:
-                time.sleep(1)
+                #time.sleep(1)
 
-                inter0 = random.randrange(3, 5)
+                #inter0 = random.randrange(3, 5)
+                inter0 = inter_time_array[24-try_num]
 
                 time.sleep(inter0)
 
+                #self.parent.img_label.setPixmap(QPixmap("./Task/init.PNG"))
+
+                start_string = disp_gear + '[' + gear_name_dic.get(disp_gear) + ']'
+
                 disp_gear = j
 
-                self.parent.img_label.setPixmap(QPixmap("./Task/Change_%s.PNG" % disp_gear))
+                end_string = disp_gear + '[' + gear_name_dic.get(disp_gear) + ']'
+
+                self.parent.showIndicator(self.parent, start_string, end_string)
 
                 global input_cnt
 
@@ -605,7 +638,9 @@ class MultiThread(QThread):
                 while input_cnt == 0:
                     useless = 0
 
-                self.parent.img_label.setPixmap(QPixmap("./Task/Now_%s.PNG" % disp_gear))
+                self.parent.hideIndicator()
+                self.parent.img_label.setPixmap(QPixmap("./Task/init.PNG"))
+                #self.parent.img_label.setPixmap(QPixmap("./Task/Now_%s.PNG" % disp_gear))
 
                 try_num = try_num - 1
 
